@@ -1,22 +1,29 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Bucheli05/stock-app-backend/internal/config"
 	"github.com/Bucheli05/stock-app-backend/internal/models"
+	"github.com/Bucheli05/stock-app-backend/internal/repository"
 )
 
 type StockService struct {
-	cfg *config.Config
+	cfg  *config.Config
+	repo *repository.StockRepository
 }
 
-func NewStockService(cfg *config.Config) *StockService {
-	return &StockService{cfg: cfg}
+func NewStockService(cfg *config.Config, repo *repository.StockRepository) *StockService {
+	return &StockService{
+		cfg:  cfg,
+		repo: repo,
+	}
 }
 
 // FetchStocks fetches the list of stocks from the API.
@@ -40,6 +47,37 @@ func (s *StockService) FetchStocks() ([]models.StockItem, error) {
 	}
 
 	return allStocks, nil
+}
+
+// FetchAndSaveStocks fetches stocks from API and saves them to the database
+// If API fails, returns cached data from database as fallback
+func (s *StockService) FetchAndSaveStocks(ctx context.Context) ([]models.StockItem, error) {
+	// Fetch stocks from API
+	stocks, err := s.FetchStocks()
+	if err != nil {
+		// API failed, try to return cached data from database
+		cachedStocks, dbErr := s.repo.GetLatestStocks(ctx)
+		if dbErr == nil && len(cachedStocks) > 0 {
+			// Return cached data with a note that it's from cache
+			return cachedStocks, fmt.Errorf("API unavailable, returning cached data: %w", err)
+		}
+		// No cached data available
+		return nil, fmt.Errorf("failed to fetch stocks and no cached data available: %w", err)
+	}
+
+	// Save to database with current timestamp
+	fetchedAt := time.Now()
+	if err := s.repo.SaveStocks(ctx, stocks, fetchedAt); err != nil {
+		// If save fails, still return the fetched data
+		return stocks, fmt.Errorf("stocks fetched but failed to save to database: %w", err)
+	}
+
+	return stocks, nil
+}
+
+// GetLatestStocksFromDB retrieves the most recent stocks from the database
+func (s *StockService) GetLatestStocksFromDB(ctx context.Context) ([]models.StockItem, error) {
+	return s.repo.GetLatestStocks(ctx)
 }
 
 // fetchStocksPage fetches a single page of stocks from the API.
@@ -89,10 +127,17 @@ func parsePrice(priceStr string) (float64, error) {
 }
 
 // RecommendBestStock analyzes the stocks and returns the best one.
-func (s *StockService) RecommendBestStock() (models.Recommendation, error) {
-	stocks, err := s.FetchStocks()
-	if err != nil {
-		return models.Recommendation{}, err
+func (s *StockService) RecommendBestStock(ctx context.Context) (models.Recommendation, error) {
+	// Try to get stocks from database first
+	stocks, err := s.GetLatestStocksFromDB(ctx)
+	if err != nil || len(stocks) == 0 {
+		// If no stocks in DB, try to fetch from API and save
+		stocks, err = s.FetchAndSaveStocks(ctx)
+		if err != nil && len(stocks) == 0 {
+			// Both API and DB failed
+			return models.Recommendation{}, err
+		}
+		// If we got here, we have cached data even though API failed
 	}
 
 	var bestStock models.StockItem

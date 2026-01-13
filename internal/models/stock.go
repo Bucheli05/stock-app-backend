@@ -3,15 +3,18 @@ package models
 import "time"
 
 type StockItem struct {
-	Ticker     string    `json:"ticker"`
-	TargetFrom string    `json:"target_from"`
-	TargetTo   string    `json:"target_to"`
-	Company    string    `json:"company"`
-	Action     string    `json:"action"`
-	Brokerage  string    `json:"brokerage"`
-	RatingFrom string    `json:"rating_from"`
-	RatingTo   string    `json:"rating_to"`
-	Time       time.Time `json:"time"`
+	ID         int       `json:"id" db:"id"`
+	Ticker     string    `json:"ticker" db:"ticker"`
+	TargetFrom string    `json:"target_from" db:"target_from"`
+	TargetTo   string    `json:"target_to" db:"target_to"`
+	Company    string    `json:"company" db:"company"`
+	Action     string    `json:"action" db:"action"`
+	Brokerage  string    `json:"brokerage" db:"brokerage"`
+	RatingFrom string    `json:"rating_from" db:"rating_from"`
+	RatingTo   string    `json:"rating_to" db:"rating_to"`
+	Time       time.Time `json:"time" db:"time"`
+	FetchedAt  time.Time `json:"fetched_at" db:"fetched_at"`
+	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 }
 
 type StockResponse struct {
