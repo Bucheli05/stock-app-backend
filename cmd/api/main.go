@@ -26,7 +26,7 @@ func main() {
 	})
 
 	router.GET("/recommend", stockHandler.GetRecommendation)
-
+	router.GET("/stocks", stockHandler.GetStocks)
 	err = router.Run(":8080")
 	if err != nil {
 		fmt.Println("Failed to start server:", err)

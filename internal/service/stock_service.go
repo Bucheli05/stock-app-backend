@@ -21,38 +21,71 @@ func NewStockService(cfg *config.Config) *StockService {
 
 // FetchStocks fetches the list of stocks from the API.
 func (s *StockService) FetchStocks() ([]models.StockItem, error) {
+	var allStocks []models.StockItem
+	nextPage := ""
+
+	for {
+		stocks, next, err := s.fetchStocksPage(nextPage)
+		if err != nil {
+			return nil, err
+		}
+
+		allStocks = append(allStocks, stocks...)
+
+		// If there's no next page, we're done
+		if next == "" {
+			break
+		}
+		nextPage = next
+	}
+
+	return allStocks, nil
+}
+
+// fetchStocksPage fetches a single page of stocks from the API.
+func (s *StockService) fetchStocksPage(nextPage string) ([]models.StockItem, string, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", s.cfg.ApiUrl, nil)
 	if err != nil {
-		return nil, err
+		return nil, "", err
+	}
+
+	// Add next_page parameter if it exists
+	if nextPage != "" {
+		q := req.URL.Query()
+		q.Add("next_page", nextPage)
+		req.URL.RawQuery = q.Encode()
 	}
 
 	req.Header.Add("Authorization", "Bearer "+s.cfg.AuthToken)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API request failed with status: %d", resp.StatusCode)
+		return nil, "", fmt.Errorf("API request failed with status: %d", resp.StatusCode)
 	}
 
 	var response models.StockResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return response.Items, nil
+	return response.Items, response.NextPage, nil
 }
 
 // parsePrice converts a string like "$428.00" to a float64.
-func parsePrice(priceStr string) float64 {
+func parsePrice(priceStr string) (float64, error) {
 	priceStr = strings.TrimPrefix(priceStr, "$")
 	priceStr = strings.ReplaceAll(priceStr, ",", "")
-	price, _ := strconv.ParseFloat(priceStr, 64)
-	return price
+	price, err := strconv.ParseFloat(priceStr, 64)
+	if err != nil {
+		return 0, err // or handle appropriately
+	}
+	return price, nil
 }
 
 // RecommendBestStock analyzes the stocks and returns the best one.
@@ -72,8 +105,8 @@ func (s *StockService) RecommendBestStock() (models.Recommendation, error) {
 			continue
 		}
 
-		from := parsePrice(stock.TargetFrom)
-		to := parsePrice(stock.TargetTo)
+		from, _ := parsePrice(stock.TargetFrom)
+		to, _ := parsePrice(stock.TargetTo)
 
 		if from == 0 {
 			continue

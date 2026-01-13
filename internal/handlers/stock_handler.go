@@ -24,3 +24,11 @@ func (h *StockHandler) GetRecommendation(c *gin.Context) {
 
 	c.JSON(http.StatusOK, recommendation)
 }
+func (h *StockHandler) GetStocks(c *gin.Context) {
+	stocks, err := h.stockService.FetchStocks()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, stocks)
+}
