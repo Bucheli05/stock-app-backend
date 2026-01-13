@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/Bucheli05/stock-app-backend/internal/config"
 	"github.com/Bucheli05/stock-app-backend/internal/handlers"
 	"github.com/Bucheli05/stock-app-backend/internal/repository"
 	"github.com/Bucheli05/stock-app-backend/internal/service"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -36,7 +38,18 @@ func main() {
 	stockService := service.NewStockService(cfg, stockRepo)
 	stockHandler := handlers.NewStockHandler(stockService)
 
+	// Configure CORS
+
 	var router *gin.Engine = gin.Default()
+
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"X-Data-Source", "X-Warning"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.String(200, "Stock Recommendation API is running!")
