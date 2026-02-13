@@ -68,3 +68,20 @@ func (h *StockHandler) RefreshStocks(c *gin.Context) {
 		"count":   len(stocks),
 	})
 }
+
+// GetStockEOD fetches end-of-day data from MarketStack for a specific symbol
+func (h *StockHandler) GetStockEOD(c *gin.Context) {
+	symbol := c.Param("symbol")
+	if symbol == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "symbol parameter is required"})
+		return
+	}
+
+	eodData, err := h.stockService.FetchMarketStackEOD(symbol)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, eodData)
+}

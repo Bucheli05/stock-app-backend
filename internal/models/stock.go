@@ -27,3 +27,34 @@ type Recommendation struct {
 	Score  float64   `json:"score"`
 	Reason string    `json:"reason"`
 }
+
+// MarketStack EOD Data Models
+type EODData struct {
+	Open        float64 `json:"open"`
+	High        float64 `json:"high"`
+	Low         float64 `json:"low"`
+	Close       float64 `json:"close"`
+	Volume      float64 `json:"volume"`
+	AdjHigh     float64 `json:"adj_high"`
+	AdjLow      float64 `json:"adj_low"`
+	AdjClose    float64 `json:"adj_close"`
+	AdjOpen     float64 `json:"adj_open"`
+	AdjVolume   float64 `json:"adj_volume"`
+	SplitFactor float64 `json:"split_factor"`
+	Dividend    float64 `json:"dividend"`
+	Symbol      string  `json:"symbol"`
+	Exchange    string  `json:"exchange"`
+	Date        string  `json:"date"`
+}
+
+type Pagination struct {
+	Limit  int `json:"limit"`
+	Offset int `json:"offset"`
+	Count  int `json:"count"`
+	Total  int `json:"total"`
+}
+
+type MarketStackResponse struct {
+	Pagination Pagination `json:"pagination"`
+	Data       []EODData  `json:"data"`
+}

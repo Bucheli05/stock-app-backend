@@ -80,6 +80,42 @@ func (s *StockService) GetLatestStocksFromDB(ctx context.Context) ([]models.Stoc
 	return s.repo.GetLatestStocks(ctx)
 }
 
+// FetchMarketStackEOD fetches end-of-day data from MarketStack API for a given symbol
+func (s *StockService) FetchMarketStackEOD(symbol string) (*models.EODData, error) {
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	// Build the MarketStack API URL
+	url := fmt.Sprintf("http://api.marketstack.com/v1/eod?access_key=5ff4770718f41c8dfce60791d0e75749&symbols=%s&exchange=NASDAQ&limit=1", symbol)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch from MarketStack: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("MarketStack API request failed with status: %d", resp.StatusCode)
+	}
+
+	var marketStackResp models.MarketStackResponse
+	if err := json.NewDecoder(resp.Body).Decode(&marketStackResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if len(marketStackResp.Data) == 0 {
+		return nil, fmt.Errorf("no data found for symbol: %s", symbol)
+	}
+
+	return &marketStackResp.Data[0], nil
+}
+
 // fetchStocksPage fetches a single page of stocks from the API.
 func (s *StockService) fetchStocksPage(nextPage string) ([]models.StockItem, string, error) {
 	client := &http.Client{}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"time"
-
 	"github.com/Bucheli05/stock-app-backend/internal/models"
 	_ "github.com/lib/pq"
 )

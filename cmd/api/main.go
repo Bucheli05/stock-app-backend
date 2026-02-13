@@ -3,15 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
-	"time"
-
 	"github.com/Bucheli05/stock-app-backend/internal/config"
 	"github.com/Bucheli05/stock-app-backend/internal/handlers"
 	"github.com/Bucheli05/stock-app-backend/internal/repository"
 	"github.com/Bucheli05/stock-app-backend/internal/service"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"log"
+	"time"
 )
 
 func main() {
@@ -57,6 +56,7 @@ func main() {
 	router.GET("/recommend", stockHandler.GetRecommendation)
 	router.GET("/stocks", stockHandler.GetStocks)
 	router.POST("/stocks/refresh", stockHandler.RefreshStocks)
+	router.GET("/stock/:symbol", stockHandler.GetStockEOD)
 
 	err = router.Run(":8080")
 	if err != nil {
